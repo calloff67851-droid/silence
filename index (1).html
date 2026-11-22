@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Silence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --gold: #e6d29a; --units: #f0e0aa; --red: #ff2a3d; --cyan: #2ae6ff; --green: #7dff9e; }
+
+  html, body {
+    height: 100%; background: #000; overflow: hidden;
+    color: var(--gold); font-family: 'Cinzel', Georgia, serif;
+  }
+
+  #fluid {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    z-index: 0; opacity: .35;
+  }
+  #noise {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    z-index: 1; opacity: .08; pointer-events: none; image-rendering: pixelated;
+  }
+  .scanlines {
+    position: fixed; inset: 0; z-index: 2; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.45) 0 1px, transparent 1px 3px);
+  }
+  .vignette {
+    position: fixed; inset: 0; z-index: 3; pointer-events: none;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,.55) 25%, #000 100%);
+  }
+  .flash {
+    position: fixed; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
+    background: linear-gradient(90deg, rgba(255,42,61,.12), transparent 30%, rgba(42,230,255,.1) 70%, transparent);
+  }
+  .flash.on { animation: flash .25s steps(2); }
+  @keyframes flash { 0% { opacity: 1; } 50% { opacity: .4; } 100% { opacity: 0; } }
+
+  .container {
+    position: relative; z-index: 5; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 2rem;
+  }
+
+  .glitch { position: relative; display: inline-block; font-weight: 700; text-transform: uppercase; }
+  .glitch::before, .glitch::after {
+    content: attr(data-text); position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+    opacity: 0; pointer-events: none;
+  }
+  .glitch::before { color: var(--red); animation: g1 5s infinite steps(1); }
+  .glitch::after  { color: var(--cyan); animation: g2 5s infinite steps(1); }
+  @keyframes g1 {
+    0%, 95%, 100% { opacity: 0; transform: none; clip-path: inset(0); }
+    96% { opacity: .5; transform: translate(-2px,0); clip-path: inset(20% 0 60% 0); }
+    98% { opacity: .5; transform: translate(2px,0); clip-path: inset(60% 0 15% 0); }
+  }
+  @keyframes g2 {
+    0%, 96%, 100% { opacity: 0; }
+    97% { opacity: .4; transform: translate(2px,0); clip-path: inset(40% 0 35% 0); }
+  }
+
+  h1 {
+    font-size: clamp(1.6rem, 5vw, 3.4rem);
+    letter-spacing: .14em; line-height: 1.3; max-width: 90vw;
+    color: #fff6dc;
+    text-shadow: 0 0 2px #000, 0 0 18px rgba(0,0,0,.95), 0 3px 14px #000;
+  }
+
+  .timer-wrap { margin-top: 2.5rem; }
+  .timer {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(2.6rem, 10vw, 7.5rem);
+    letter-spacing: .08em; color: var(--gold);
+    text-shadow: 0 0 2px #000, 0 0 30px rgba(0,0,0,.95);
+    font-variant-numeric: tabular-nums;
+  }
+  .timer.hit { animation: hit .18s steps(2) 2; }
+  .timer.glitching { animation: shake .12s steps(2) infinite; color: var(--red); }
+  @keyframes hit { 0% { transform: translateX(-6px); } 100% { transform: none; } }
+  @keyframes shake { 50% { transform: translate(3px,-1px); } }
+
+  .units {
+    display: flex; justify-content: center; gap: clamp(1.2rem, 4vw, 3.8rem);
+    margin-top: 1.2rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(1.05rem, 2.2vw, 1.4rem);
+    letter-spacing: .2em; text-transform: uppercase;
+    color: var(--units); font-weight: 700;
+    text-shadow: 0 0 3px #000, 0 0 10px #000;
+  }
+  .units span { width: clamp(4.5rem, 12vw, 9.5rem); text-align: center; }
+
+  .console {
+    position: fixed; top: 1.2rem; left: 1.4rem; z-index: 6;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(.7rem, 1.2vw, .9rem); line-height: 1.6;
+    color: var(--green); text-shadow: 0 0 6px rgba(125,255,158,.5), 0 0 2px #000;
+    pointer-events: none; white-space: pre;
+  }
+  .console .dim { color: #6f9c7b; }
+  .console .warn { color: var(--red); }
+
+  .footer {
+    position: fixed; left: 0; right: 0; bottom: 1.2rem; z-index: 6;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 1.6rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(.8rem, 1.6vw, .95rem); letter-spacing: .2em; text-transform: uppercase;
+    color: #cbb77e; text-shadow: 0 0 3px #000, 0 0 8px #000;
+    pointer-events: none;
+  }
+  .status { display: flex; align-items: center; gap: .5rem; }
+  .status i {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--red); box-shadow: 0 0 8px var(--red);
+    animation: blink 1.6s steps(2) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .cursor::after {
+    content: '▌'; margin-left: .3rem; color: var(--gold);
+    animation: blink 1s steps(2) infinite;
+  }
+</style>
+</head>
+<body>
+  <canvas id="fluid"></canvas>
+  <canvas id="noise"></canvas>
+  <div class="scanlines"></div>
+  <div class="vignette"></div>
+  <div class="flash" id="flash"></div>
+
+  <div class="console" id="console"></div>
+
+  <div class="container" id="container">
+    <h1 class="glitch" id="title" data-text="Les soldes sont dans :">Les taupes seront desmasquer dans :</h1>
+    <div class="timer-wrap">
+      <div class="timer" id="timer">--:--:--:--</div>
+      <div class="units"><span>jours</span><span>heures</span><span>minutes</span><span>secondes</span></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="status"><i></i><span>Canal sécurisé</span></div>
+    <div class="session" id="session">SESSION 0000</div>
+    <div class="cursor" id="trace">trace en cours</div>
+  </div>
+
+<script>
+/* ===================== CONFIGURATION ===================== */
+const DATE_1 = new Date(2027, 0, 1, 0, 0, 0);   // 1er janvier 2027 à 00h00
+const DUREE_2 = 7 * 24 * 60 * 60 * 1000;         // 7 jours en millisecondes
+const DELAI_SWITCH = 3000;                       // 3 secondes avant le passage
+
+const $ = id => document.getElementById(id);
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = s => s[Math.floor(Math.random() * s.length)];
+const pad = n => String(n).padStart(2, '0');
+const GLYPHS = '█▓▒░#%&@!?/\\<>[]{}';
+
+/* ===================== FOND FLUIDE ===================== */
+const fluid = $('fluid'), fctx = fluid.getContext('2d');
+const noise = $('noise'), nctx = noise.getContext('2d');
+const SCALE = 4;
+let FW, FH;
+function resize() {
+  FW = fluid.width = Math.ceil(innerWidth / SCALE);
+  FH = fluid.height = Math.ceil(innerHeight / SCALE);
+  noise.width = Math.ceil(innerWidth / 6);
+  noise.height = Math.ceil(innerHeight / 6);
+}
+
+const mouse = { x: .5, y: .5, on: false };
+addEventListener('mousemove', e => { mouse.x = e.clientX / innerWidth; mouse.y = e.clientY / innerHeight; mouse.on = true; });
+
+const blobs = Array.from({ length: 5 }, () => ({
+  x: Math.random(), y: Math.random(),
+  vx: rnd(-.0006, .0006), vy: rnd(-.0006, .0006),
+  r: rnd(.3, .5), phase: Math.random() * 6.28,
+  hue: Math.random() < .2 ? '255,42,61' : '110,75,30'
+}));
+
+let lastFrame = 0;
+function drawFluid(t) {
+  requestAnimationFrame(drawFluid);
+  if (t - lastFrame < 1000 / 24) return;
+  lastFrame = t;
+  fctx.globalCompositeOperation = 'source-over';
+  fctx.fillStyle = 'rgba(0,0,0,.25)';
+  fctx.fillRect(0, 0, FW, FH);
+  fctx.globalCompositeOperation = 'lighter';
+  for (const b of blobs) {
+    b.phase += .003;
+    b.vx += Math.cos(b.phase) * .00002;
+    b.vy += Math.sin(b.phase * 1.2) * .00002;
+    if (mouse.on) {
+      const dx = mouse.x - b.x, dy = mouse.y - b.y;
+      const d = Math.hypot(dx, dy) + .05;
+      if (d < .35) { b.vx += dx / d * .00009; b.vy += dy / d * .00009; }
+    }
+    b.vx *= .985; b.vy *= .985;
+    b.x += b.vx; b.y += b.vy;
+    if (b.x < -.2) b.x = 1.2; if (b.x > 1.2) b.x = -.2;
+    if (b.y < -.2) b.y = 1.2; if (b.y > 1.2) b.y = -.2;
+    const cx = b.x * FW, cy = b.y * FH, R = b.r * Math.max(FW, FH);
+    const g = fctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+    g.addColorStop(0, `rgba(${b.hue},.12)`);
+    g.addColorStop(.5, `rgba(${b.hue},.03)`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    fctx.fillStyle = g;
+    fctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+  }
+}
+
+/* ===================== BRUIT ===================== */
+function drawNoise() {
+  const w = noise.width, h = noise.height;
+  const img = nctx.createImageData(w, h);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = Math.random() * 255;
+    d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
+  }
+  nctx.putImageData(img, 0, 0);
+  setTimeout(drawNoise, 125);
+}
+
+/* ===================== CONSOLE HACK ===================== */
+const consoleEl = $('console');
+const LOG = [
+  ['dim', '[ OK ] noyau chargé'],
+  ['dim', '[ OK ] chiffrement AES-256 actif'],
+  ['', '> connexion au serveur...'],
+  ['warn', '[ !! ] intrusion détectée'],
+  ['', '> recherche de la source...'],
+  ['dim', '[ OK ] tunnel établi'],
+  ['', '> décodage des journaux...'],
+  ['warn', '[ !! ] profil suspect : 1 entrée'],
+  ['', '> identité en cours de recoupement'],
+];
+let logIndex = 0;
+function typeLog() {
+  if (logIndex >= LOG.length) {
+    setTimeout(() => { consoleEl.textContent = ''; logIndex = 0; typeLog(); }, 4000);
+    return;
+  }
+  const [cls, txt] = LOG[logIndex++];
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  consoleEl.appendChild(line);
+  let i = 0;
+  const iv = setInterval(() => {
+    line.textContent += txt[i++];
+    if (i >= txt.length) { clearInterval(iv); setTimeout(typeLog, 200); }
+  }, 12);
+}
+
+/* ===================== GLITCH ===================== */
+const flash = $('flash');
+const container = $('container');
+function burst() {
+  flash.classList.remove('on'); void flash.offsetWidth; flash.classList.add('on');
+  container.style.transform = `translate(${rnd(-6, 6)}px, ${rnd(-2, 2)}px)`;
+  setTimeout(() => container.style.transform = '', 90);
+  setTimeout(burst, rnd(3000, 6000));
+}
+
+const title = $('title'), titleOrig = title.textContent;
+function scrambleTitle() {
+  let out = '';
+  for (const ch of titleOrig) out += (ch !== ' ' && Math.random() < .1) ? pick(GLYPHS) : ch;
+  title.textContent = out; title.dataset.text = out;
+  setTimeout(() => { title.textContent = titleOrig; title.dataset.text = titleOrig; }, 80);
+  setTimeout(scrambleTitle, rnd(5000, 9000));
+}
+
+/* ===================== COMPTE À REBOURS ===================== */
+const timerEl = $('timer');
+let cible = DATE_1.getTime();
+let lastStr = '';
+
+function formatage(diff) {
+  const s = Math.floor(diff / 1000);
+  return `${pad(Math.floor(s / 86400))}:${pad(Math.floor((s % 86400) / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+}
+
+function tick() {
+  let diff = cible - Date.now();
+  if (diff < 0) diff = 0;
+  const str = formatage(diff);
+  if (str !== lastStr) {
+    timerEl.classList.remove('hit'); void timerEl.offsetWidth; timerEl.classList.add('hit');
+    lastStr = str;
+    timerEl.textContent = str;
+  }
+}
+
+/* Passage du 1er janvier au compte à rebours de 7 jours, avec glitch */
+function switchTo7Jours() {
+  timerEl.classList.add('glitching');
+  burst();
+  let n = 0;
+  const iv = setInterval(() => {
+    n++;
+    timerEl.textContent = formatage(Math.floor(rnd(0, DUREE_2)));
+    if (n >= 12) {
+      clearInterval(iv);
+      timerEl.classList.remove('glitching');
+      cible = Date.now() + DUREE_2;
+      lastStr = '';
+      tick();
+    }
+  }, 60);
+}
+
+/* ===================== DÉTAILS DU BAS ===================== */
+const sessionEl = $('session');
+let sessionNum = Math.floor(rnd(1000, 9000));
+sessionEl.textContent = 'SESSION ' + String(sessionNum).padStart(4, '0');
+setInterval(() => {
+  sessionNum = (sessionNum + Math.floor(rnd(1, 4))) % 10000;
+  sessionEl.textContent = 'SESSION ' + String(sessionNum).padStart(4, '0');
+}, 2600);
+
+const traceEl = $('trace');
+const TRACE = ['trace en cours', 'signal faible', 'recoupement…', 'identité masquée', 'surveillance active'];
+let traceI = 0;
+setInterval(() => {
+  traceI = (traceI + 1) % TRACE.length;
+  traceEl.textContent = TRACE[traceI];
+}, 4200);
+
+/* ===================== INIT ===================== */
+addEventListener('resize', resize);
+resize();
+tick();
+setInterval(tick, 1000);
+requestAnimationFrame(drawFluid);
+drawNoise();
+typeLog();
+setTimeout(burst, 2000);
+setTimeout(scrambleTitle, 3000);
+setTimeout(switchTo7Jours, DELAI_SWITCH);
+</script>
+</body>
+</html>
